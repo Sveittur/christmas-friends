@@ -389,7 +389,7 @@
       NPCS.forEach((n, i) => {
         const [x, y] = positions[i];
         const s = npcs.create(x, y, n.id);
-        s.setScale(0.8);
+        s.setScale(1.4);
         s.setData('npc', n);
         s.setData('found', false);
         this.tweens.add({ targets: s, y: y - 3, duration: 700 + i * 80, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
