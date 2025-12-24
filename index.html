@@ -105,16 +105,65 @@
       text-shadow: 0 0 15px rgba(78,205,196,0.5);
       pointer-events: none;
     }
+    .victory {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(20,60,20,0.95) 0%, rgba(10,20,10,0.98) 100%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .victory h1 {
+      font-size: clamp(36px, 12vw, 80px);
+      color: #ff4444;
+      text-shadow: 0 0 30px #ff0000, 0 0 60px #ff4444, 0 4px 0 #aa0000;
+      margin: 0;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    .victory p {
+      font-size: clamp(18px, 5vw, 28px);
+      color: #44ff44;
+      text-shadow: 0 0 20px #00ff00;
+      margin-top: 20px;
+    }
+    .victory .snowflakes {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .victory .snowflakes span {
+      position: absolute;
+      top: -20px;
+      color: #fff;
+      font-size: 20px;
+      animation: fall linear infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(360deg); }
+    }
   </style>
 </head>
 <body>
   <div id="game"></div>
 
+  <div class="victory" id="victory">
+    <div class="snowflakes" id="snowflakes"></div>
+    <h1>GLEÐILEG JÓL!</h1>
+    <p>Þú fannst alla! 🎄</p>
+  </div>
+
   <div class="hud">
-    <div class="title">Friends Edition</div>
+    <div class="title">Púkast</div>
     <div class="bubble" id="bubble"></div>
     
-    <div class="score" id="score">Found: 0 / 7</div>
+    <div class="score" id="score">Fundnir: 0 / 7</div>
 
     <div class="dpad" id="dpad">
       <div class="btn up" data-dir="up">▲</div>
@@ -413,8 +462,26 @@
       showBubble._t = setTimeout(() => bubbleEl.style.display = 'none', 4000);
     }
 
+    function showVictory() {
+      const victory = document.getElementById('victory');
+      const snowflakes = document.getElementById('snowflakes');
+      victory.style.display = 'flex';
+      
+      // Create falling snowflakes
+      for (let i = 0; i < 50; i++) {
+        const flake = document.createElement('span');
+        flake.textContent = '❄';
+        flake.style.left = Math.random() * 100 + '%';
+        flake.style.animationDuration = (3 + Math.random() * 4) + 's';
+        flake.style.animationDelay = Math.random() * 3 + 's';
+        flake.style.opacity = 0.5 + Math.random() * 0.5;
+        flake.style.fontSize = (12 + Math.random() * 16) + 'px';
+        snowflakes.appendChild(flake);
+      }
+    }
+
     function tryInteract(scene) {
-      if (!nearestNpc) { showBubble('No one nearby... float closer!'); return; }
+      if (!nearestNpc) { showBubble('Enginn nálægt... farðu nær!'); return; }
       if (nearestNpc.getData('found')) {
         const d = nearestNpc.getData('npc');
         showBubble(`${d.name}: "${d.line}"`);
@@ -422,7 +489,7 @@
       }
 
       const data = nearestNpc.getData('npc');
-      const guess = prompt('Who is this? Type their name:');
+      const guess = prompt('Hver er þetta? Sláðu inn nafn:');
       if (guess === null) return;
 
       const g = normalizeGuess(guess);
@@ -431,7 +498,7 @@
       if (ok) {
         nearestNpc.setData('found', true);
         foundCount++;
-        scoreEl.textContent = `Found: ${foundCount} / 7`;
+        scoreEl.textContent = `Fundnir: ${foundCount} / 7`;
         const label = nearestNpc.getData('label');
         if (label) { label.setText(data.name); label.setColor('#88ff88'); }
         showBubble(`${data.name}: "${data.line}"`);
@@ -440,9 +507,9 @@
           speed: 100, scale: { start: 0.8, end: 0 }, lifespan: 800, quantity: 20, tint: [0xffd700, 0xff6b6b, 0x4ecdc4]
         });
 
-        if (foundCount === 7) setTimeout(() => showBubble('You found everyone! Merry Christmas!'), 1500);
+        if (foundCount === NPCS.length) setTimeout(() => showVictory(), 1500);
       } else {
-        showBubble("Hmm, that's not right. Try again!");
+        showBubble("Hmm, ekki allveg rétt... reyndu aftur!");
       }
     }
 
