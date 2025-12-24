@@ -1,0 +1,470 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+  <title>Christmas Ghost - Friends</title>
+  <style>
+    html, body { margin: 0; padding: 0; background:#1a0a2e; height:100%; overflow:hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
+    #game { width: 100vw; height: 100vh; }
+
+    .hud {
+      position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    .dpad {
+      position: absolute; left: 16px; bottom: 16px;
+      width: 160px; height: 160px;
+      pointer-events: auto;
+      opacity: 0.9;
+      touch-action: none;
+      user-select: none;
+    }
+    .btn {
+      position: absolute;
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(220,50,50,0.25), rgba(50,180,50,0.25));
+      border: 2px solid rgba(255,215,0,0.4);
+      display:flex; align-items:center; justify-content:center;
+      color: rgba(255,255,255,0.9);
+      font-weight: 700;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 15px rgba(255,215,0,0.2);
+    }
+    .btn:active { background: rgba(255,215,0,0.3); }
+    .up { left: 54px; top: 0px; }
+    .down { left: 54px; bottom: 0px; }
+    .left { left: 0px; top: 54px; }
+    .right { right: 0px; top: 54px; }
+
+    .interact {
+      position: absolute; right: 16px; bottom: 22px;
+      width: 130px; height: 54px;
+      border-radius: 16px;
+      pointer-events: auto;
+      background: linear-gradient(135deg, rgba(200,30,30,0.4), rgba(30,150,30,0.4));
+      border: 2px solid rgba(255,215,0,0.5);
+      color: #ffe066;
+      font-weight: 800;
+      font-size: 15px;
+      display:flex; align-items:center; justify-content:center;
+      backdrop-filter: blur(6px);
+      touch-action: none;
+      user-select: none;
+      box-shadow: 0 0 20px rgba(255,215,0,0.3);
+      text-shadow: 0 0 10px rgba(255,200,0,0.5);
+    }
+
+    .bubble {
+      position: fixed;
+      left: 50%; top: 16px;
+      transform: translateX(-50%);
+      max-width: min(560px, calc(100vw - 32px));
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(139,0,0,0.85), rgba(0,100,0,0.85));
+      color: #fff;
+      border: 2px solid rgba(255,215,0,0.6);
+      backdrop-filter: blur(8px);
+      display: none;
+      pointer-events: none;
+      line-height: 1.4;
+      font-size: 15px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.4), 0 0 20px rgba(255,215,0,0.2);
+    }
+    .hint {
+      position: fixed;
+      left: 50%; bottom: 190px;
+      transform: translateX(-50%);
+      color: rgba(255,230,150,0.9);
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+      padding: 8px 16px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 20px;
+      pointer-events: none;
+      text-shadow: 0 0 10px rgba(255,200,0,0.3);
+    }
+    .score {
+      position: fixed;
+      right: 20px; top: 20px;
+      color: #ffd700;
+      font-size: 18px;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(255,215,0,0.5);
+      pointer-events: none;
+    }
+    .title {
+      position: fixed;
+      left: 20px; top: 20px;
+      color: #4ecdc4;
+      font-size: 20px;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(78,205,196,0.5);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+
+  <div class="hud">
+    <div class="title">Friends Edition</div>
+    <div class="bubble" id="bubble"></div>
+    <div class="hint" id="hint">Walk near someone and press Space to guess their name!</div>
+    <div class="score" id="score">Found: 0 / 7</div>
+
+    <div class="dpad" id="dpad">
+      <div class="btn up" data-dir="up">▲</div>
+      <div class="btn left" data-dir="left">◀</div>
+      <div class="btn right" data-dir="right">▶</div>
+      <div class="btn down" data-dir="down">▼</div>
+    </div>
+
+    <div class="interact" id="interactBtn">✨ Interact</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script>
+    // ====== EDIT THESE 7 FRIENDS ======
+    const NPCS = [
+      { id: "alex",       sprite: "alex_sprite.png",       name: "Alex",       aliases: ["alex"],       line: "PLACEHOLDER LINE 1" },
+      { id: "andri",      sprite: "andri_sprite.png",      name: "Andri",      aliases: ["andri"],      line: "PLACEHOLDER LINE 2" },
+      { id: "hugi",       sprite: "hugi_sprite.png",       name: "Hugi",       aliases: ["hugi"],       line: "PLACEHOLDER LINE 3" },
+      { id: "aron",      sprite: "aron_sprite.png",      name: "Aron",      aliases: ["aron"],      line: "PLACEHOLDER LINE 4" },
+      { id: "venni",      sprite: "venni_sprite.png",      name: "Venni",      aliases: ["venni"],      line: "PLACEHOLDER LINE 6" },
+      { id: "einar",   sprite: "einar_sprite.png",   name: "Einar",   aliases: ["einar"],       line: "PLACEHOLDER LINE 5" },
+      { id: "bjarni",   sprite: "bjarni_sprite.png",   name: "Bjarni",   aliases: ["bjarni"],       line: "PLACEHOLDER LINE 7" },
+
+    ];
+
+    const config = {
+      type: Phaser.AUTO,
+      parent: 'game',
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: '#1a0a2e',
+      physics: { default: 'arcade', arcade: { gravity: { y: 0 }, debug: false } },
+      scene: { preload, create, update }
+    };
+
+    let game = new Phaser.Game(config);
+    let cursors, wasd, move = { up:false, down:false, left:false, right:false };
+    let player, npcs, interactKey;
+    let nearestNpc = null, foundCount = 0;
+    let bubbleEl = document.getElementById('bubble');
+    let hintEl = document.getElementById('hint');
+    let scoreEl = document.getElementById('score');
+
+    function preload() {
+      // Load NPC sprites
+      NPCS.forEach(n => {
+        this.load.image(n.id, n.sprite);
+      });
+
+      // Generate ghost texture
+      const g = this.make.graphics({x:0,y:0,add:false});
+      g.fillStyle(0xffffff, 0.95);
+      g.fillEllipse(20, 16, 32, 28);
+      for(let i=0; i<4; i++) g.fillEllipse(8 + i*9, 32, 10, 10);
+      g.fillStyle(0x222244, 1);
+      g.fillEllipse(13, 14, 6, 8);
+      g.fillEllipse(27, 14, 6, 8);
+      g.fillStyle(0xffaacc, 0.5);
+      g.fillEllipse(6, 20, 6, 4);
+      g.fillEllipse(34, 20, 6, 4);
+      g.generateTexture('ghost', 40, 40);
+
+      // Christmas tree
+      g.clear();
+      g.fillStyle(0x2d5a27, 1);
+      g.fillTriangle(40, 0, 0, 50, 80, 50);
+      g.fillTriangle(40, 20, 5, 80, 75, 80);
+      g.fillTriangle(40, 50, 10, 110, 70, 110);
+      g.fillStyle(0x8b4513, 1);
+      g.fillRect(30, 110, 20, 25);
+      g.fillStyle(0xffd700, 1);
+      g.fillTriangle(40, 0, 35, 12, 45, 12);
+      g.fillTriangle(40, 14, 32, 6, 48, 6);
+      const ornamentColors = [0xff0000, 0xffd700, 0x00ff00, 0xff69b4, 0x00bfff];
+      [[20,35],[60,35],[15,65],[65,65],[30,55],[50,55],[25,90],[55,90],[40,75]].forEach(([x,y], idx) => {
+        g.fillStyle(ornamentColors[idx % ornamentColors.length], 1);
+        g.fillCircle(x, y, 5);
+      });
+      g.generateTexture('tree', 80, 135);
+
+      // Presents
+      const presentColors = [[0xff4444,0xffdd00],[0x44ff44,0xff4444],[0x4444ff,0xffdd00],[0xff44ff,0x44ffff]];
+      presentColors.forEach(([box,ribbon], i) => {
+        g.clear();
+        g.fillStyle(box, 1);
+        g.fillRoundedRect(0, 8, 40, 32, 4);
+        g.fillStyle(ribbon, 1);
+        g.fillRect(17, 8, 6, 32);
+        g.fillRect(0, 20, 40, 6);
+        g.fillEllipse(20, 6, 14, 8);
+        g.fillEllipse(12, 4, 8, 6);
+        g.fillEllipse(28, 4, 8, 6);
+        g.generateTexture(`present${i}`, 40, 40);
+      });
+
+      // Snowflake
+      g.clear();
+      g.fillStyle(0xffffff, 0.9);
+      g.fillCircle(4, 4, 3);
+      g.generateTexture('snowflake', 8, 8);
+
+      // Lights
+      ['Yellow','Red','Green','Blue'].forEach((c, i) => {
+        g.clear();
+        g.fillStyle([0xffff00, 0xff3333, 0x33ff33, 0x3399ff][i], 1);
+        g.fillCircle(6, 6, 6);
+        g.generateTexture(`light${c}`, 12, 12);
+      });
+
+      // Fireplace
+      g.clear();
+      g.fillStyle(0x8b4513, 1);
+      g.fillRect(0, 0, 120, 90);
+      g.fillStyle(0x654321, 1);
+      g.fillRect(10, 10, 100, 70);
+      g.fillStyle(0x1a1a1a, 1);
+      g.fillRect(15, 25, 90, 55);
+      g.fillStyle(0xff6600, 0.9);
+      g.fillTriangle(35, 75, 45, 40, 55, 75);
+      g.fillStyle(0xffaa00, 0.9);
+      g.fillTriangle(55, 75, 65, 45, 75, 75);
+      g.fillStyle(0xff4400, 0.8);
+      g.fillTriangle(45, 75, 60, 50, 70, 75);
+      g.generateTexture('fireplace', 120, 90);
+
+      // Couch
+      g.clear();
+      g.fillStyle(0x8b0000, 1);
+      g.fillRoundedRect(0, 20, 140, 50, 10);
+      g.fillRoundedRect(0, 10, 30, 60, 8);
+      g.fillRoundedRect(110, 10, 30, 60, 8);
+      g.fillStyle(0xa52a2a, 1);
+      g.fillRoundedRect(35, 25, 70, 40, 6);
+      g.generateTexture('couch', 140, 70);
+
+      // Table
+      g.clear();
+      g.fillStyle(0xdeb887, 1);
+      g.fillRoundedRect(0, 0, 100, 60, 8);
+      g.fillStyle(0xcd853f, 1);
+      g.fillRect(5, 55, 10, 25);
+      g.fillRect(85, 55, 10, 25);
+      g.generateTexture('table', 100, 80);
+
+      // Wreath
+      g.clear();
+      g.lineStyle(12, 0x228b22, 1);
+      g.strokeCircle(25, 25, 20);
+      g.fillStyle(0xff0000, 1);
+      g.fillCircle(25, 5, 6);
+      g.fillCircle(20, 8, 5);
+      g.fillCircle(30, 8, 5);
+      g.generateTexture('wreath', 50, 50);
+    }
+
+    function create() {
+      const scene = this;
+      window.addEventListener('resize', () => scene.scale.resize(window.innerWidth, window.innerHeight));
+
+      const worldW = 1200, worldH = 800;
+      this.physics.world.setBounds(0, 0, worldW, worldH);
+
+      // Background
+      const bg = this.add.graphics();
+      bg.fillGradientStyle(0x1a0a3e, 0x1a0a3e, 0x2d1b4e, 0x2d1b4e);
+      bg.fillRect(0, 0, worldW, worldH);
+
+      // Snow ground
+      const ground = this.add.graphics();
+      ground.fillStyle(0xf0f8ff, 0.15);
+      ground.fillRoundedRect(0, worldH - 100, worldW, 100, 0);
+      for (let i = 0; i < 6; i++) {
+        ground.fillStyle(0xffffff, 0.08);
+        ground.fillEllipse(i * 220 + 100, worldH - 60, 250, 80);
+      }
+
+      // Decorations
+      this.add.image(200, 180, 'fireplace').setScale(1.8);
+      this.add.image(600, 150, 'wreath').setScale(1.5);
+      this.add.image(1000, 150, 'wreath').setScale(1.5);
+
+      [[100, 320], [1100, 320], [600, 180]].forEach(([x, y]) => {
+        this.add.image(x, y, 'tree').setScale(Phaser.Math.FloatBetween(1.2, 1.5));
+      });
+
+      this.add.image(400, 380, 'couch').setScale(1.2);
+      this.add.image(800, 380, 'couch').setScale(1.2).setFlipX(true);
+      this.add.image(600, 450, 'table').setScale(1.1);
+
+      for (let i = 0; i < 15; i++) {
+        this.add.image(Phaser.Math.Between(80, worldW - 80), Phaser.Math.Between(450, worldH - 100), `present${i % 4}`).setScale(Phaser.Math.FloatBetween(0.5, 0.9));
+      }
+
+      // String lights
+      const lightTypes = ['lightRed', 'lightGreen', 'lightYellow', 'lightBlue'];
+      for (let i = 0; i < 40; i++) {
+        const light = this.add.image(i * 32 + 20, 70 + Math.sin(i * 0.5) * 12, lightTypes[i % 4]).setScale(0.7);
+        this.tweens.add({ targets: light, alpha: { from: 0.5, to: 1 }, duration: 250 + (i % 4) * 180, yoyo: true, repeat: -1 });
+      }
+
+      // Snow particles
+      this.add.particles(0, 0, 'snowflake', {
+        x: { min: 0, max: worldW }, y: -10,
+        lifespan: 6000, speedY: { min: 25, max: 60 }, speedX: { min: -15, max: 15 },
+        scale: { min: 0.3, max: 0.9 }, alpha: { start: 0.7, end: 0.2 },
+        frequency: 100, blendMode: 'ADD'
+      });
+
+      // Player
+      player = this.physics.add.sprite(worldW / 2, 500, 'ghost');
+      player.setCollideWorldBounds(true);
+      player.setDrag(1200, 1200);
+      player.setMaxVelocity(220);
+      player.setScale(1.1);
+      player.setDepth(100);
+      this.tweens.add({ targets: player, scaleY: { from: 1.1, to: 1.15 }, scaleX: { from: 1.1, to: 1.05 }, duration: 1200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      player.postFX.addGlow(0xffffff, 2, 0, false, 0.1, 10);
+
+      // NPCs
+      npcs = this.physics.add.staticGroup();
+      const positions = [[180, 520], [350, 600], [520, 520], [600, 650], [750, 520], [920, 600], [1050, 520]];
+
+      NPCS.forEach((n, i) => {
+        const [x, y] = positions[i];
+        const s = npcs.create(x, y, n.id);
+        s.setScale(0.8);
+        s.setData('npc', n);
+        s.setData('found', false);
+        this.tweens.add({ targets: s, y: y - 3, duration: 700 + i * 80, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+
+        const label = this.add.text(x, y - 50, '?', { fontSize: '22px', color: '#ffd700', fontStyle: 'bold', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5, 1);
+        s.setData('label', label);
+      });
+
+      // Camera
+      this.cameras.main.setBounds(0, 0, worldW, worldH);
+      this.cameras.main.startFollow(player, true, 0.08, 0.08);
+      this.cameras.main.postFX.addVignette(0.5, 0.5, 0.85);
+
+      // Controls
+      cursors = this.input.keyboard.createCursorKeys();
+      wasd = this.input.keyboard.addKeys('W,A,S,D');
+      interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+      wireDpad();
+      wireInteract(this);
+    }
+
+    function update() {
+      const up = cursors.up.isDown || wasd.W.isDown || move.up;
+      const down = cursors.down.isDown || wasd.S.isDown || move.down;
+      const left = cursors.left.isDown || wasd.A.isDown || move.left;
+      const right = cursors.right.isDown || wasd.D.isDown || move.right;
+
+      const speed = 200;
+      let vx = 0, vy = 0;
+      if (left) vx -= speed;
+      if (right) vx += speed;
+      if (up) vy -= speed;
+      if (down) vy += speed;
+      if (vx && vy) { vx *= 0.707; vy *= 0.707; }
+      player.setVelocity(vx, vy);
+
+      if (vx < 0) player.setFlipX(true);
+      else if (vx > 0) player.setFlipX(false);
+
+      npcs.getChildren().forEach(s => {
+        const label = s.getData('label');
+        if (label) label.setPosition(s.x, s.y - 50);
+      });
+
+      nearestNpc = getNearestNpcWithin(player.x, player.y, 80);
+
+      if (nearestNpc && !nearestNpc.getData('found')) {
+        hintEl.textContent = '✨ Someone is near! Press Space to guess!';
+      } else if (nearestNpc && nearestNpc.getData('found')) {
+        hintEl.textContent = `That's ${nearestNpc.getData('npc').name}!`;
+      } else {
+        hintEl.textContent = 'Walk near someone and press Space to guess!';
+      }
+
+      if (Phaser.Input.Keyboard.JustDown(interactKey)) tryInteract(this);
+    }
+
+    function getNearestNpcWithin(px, py, radius) {
+      let best = null, bestD2 = radius * radius;
+      npcs.getChildren().forEach(s => {
+        const dx = s.x - px, dy = s.y - py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= bestD2) { bestD2 = d2; best = s; }
+      });
+      return best;
+    }
+
+    function normalizeGuess(str) {
+      return (str || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function showBubble(text) {
+      bubbleEl.textContent = text;
+      bubbleEl.style.display = 'block';
+      clearTimeout(showBubble._t);
+      showBubble._t = setTimeout(() => bubbleEl.style.display = 'none', 4000);
+    }
+
+    function tryInteract(scene) {
+      if (!nearestNpc) { showBubble('No one nearby... float closer!'); return; }
+      if (nearestNpc.getData('found')) {
+        const d = nearestNpc.getData('npc');
+        showBubble(`${d.name}: "${d.line}"`);
+        return;
+      }
+
+      const data = nearestNpc.getData('npc');
+      const guess = prompt('Who is this? Type their name:');
+      if (guess === null) return;
+
+      const g = normalizeGuess(guess);
+      const ok = normalizeGuess(data.name) === g || (data.aliases || []).some(a => normalizeGuess(a) === g);
+
+      if (ok) {
+        nearestNpc.setData('found', true);
+        foundCount++;
+        scoreEl.textContent = `Found: ${foundCount} / 7`;
+        const label = nearestNpc.getData('label');
+        if (label) { label.setText(data.name); label.setColor('#88ff88'); }
+        showBubble(`${data.name}: "${data.line}"`);
+
+        scene.add.particles(nearestNpc.x, nearestNpc.y, 'snowflake', {
+          speed: 100, scale: { start: 0.8, end: 0 }, lifespan: 800, quantity: 20, tint: [0xffd700, 0xff6b6b, 0x4ecdc4]
+        });
+
+        if (foundCount === 7) setTimeout(() => showBubble('You found everyone! Merry Christmas!'), 1500);
+      } else {
+        showBubble("Hmm, that's not right. Try again!");
+      }
+    }
+
+    function wireDpad() {
+      document.getElementById('dpad').querySelectorAll('.btn').forEach(btn => {
+        const dir = btn.getAttribute('data-dir');
+        btn.addEventListener('pointerdown', e => { e.preventDefault(); move[dir] = true; });
+        btn.addEventListener('pointerup', e => { e.preventDefault(); move[dir] = false; });
+        btn.addEventListener('pointercancel', e => { e.preventDefault(); move[dir] = false; });
+        btn.addEventListener('pointerleave', e => { e.preventDefault(); move[dir] = false; });
+      });
+    }
+
+    function wireInteract(scene) {
+      document.getElementById('interactBtn').addEventListener('pointerdown', e => { e.preventDefault(); tryInteract(scene); });
+    }
+  </script>
+</body>
+</html>
