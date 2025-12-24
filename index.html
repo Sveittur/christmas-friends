@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
   <title>Christmas Ghost - Friends</title>
   <style>
-    html, body { margin: 0; padding: 0; background:#1a0a2e; height:100%; overflow:hidden; font-family: 'Segoe UI', system-ui, sans-serif; }
+    html, body { margin: 0; padding: 0; background:#1a0a2e; height:100%; overflow:hidden; font-family: 'Segoe UI', system-ui, sans-serif; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
     #game { width: 100vw; height: 100vh; }
 
     .hud {
@@ -113,7 +113,7 @@
   <div class="hud">
     <div class="title">Friends Edition</div>
     <div class="bubble" id="bubble"></div>
-    <div class="hint" id="hint">Walk near someone and press Space to guess their name!</div>
+    
     <div class="score" id="score">Found: 0 / 7</div>
 
     <div class="dpad" id="dpad">
@@ -155,7 +155,7 @@
     let player, npcs, interactKey;
     let nearestNpc = null, foundCount = 0;
     let bubbleEl = document.getElementById('bubble');
-    let hintEl = document.getElementById('hint');
+    
     let scoreEl = document.getElementById('score');
 
     function preload() {
@@ -387,13 +387,7 @@
 
       nearestNpc = getNearestNpcWithin(player.x, player.y, 80);
 
-      if (nearestNpc && !nearestNpc.getData('found')) {
-        hintEl.textContent = '✨ Someone is near! Press Space to guess!';
-      } else if (nearestNpc && nearestNpc.getData('found')) {
-        hintEl.textContent = `That's ${nearestNpc.getData('npc').name}!`;
-      } else {
-        hintEl.textContent = 'Walk near someone and press Space to guess!';
-      }
+
 
       if (Phaser.Input.Keyboard.JustDown(interactKey)) tryInteract(this);
     }
